@@ -2,7 +2,7 @@
 
 Validate and convert any Bitcoin Cash address — detects format, network, CashTokens support, and converts between CashAddr and token-aware CashAddr.
 
-**Live demo:** https://bch-address-tool.netlify.app  
+**Live demo:** https://cerulean-praline-962c56.netlify.app  
 **Starter branch:** https://github.com/vybzcody/bch-address-tool/tree/starter
 
 ## Stack
