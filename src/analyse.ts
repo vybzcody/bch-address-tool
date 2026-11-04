@@ -1,9 +1,10 @@
 // === PHASE 1: types ===
-export type AddressFormat = 'legacy' | 'cashaddr' | 'cashaddr-token' | 'cashaddr-no-prefix' | 'unknown'
-export type Network = 'mainnet' | 'testnet' | 'regtest'
+import { decodeCashAddress, encodeCashAddress } from '@bitauth/libauth'
+
+export type Network = 'mainnet' | 'testnet' | 'regtest' | 'legacy'
 
 export interface AddressInfo {
-  format: AddressFormat
+  format: string
   network: Network
   tokenAware: boolean
   cashaddr: string
@@ -11,79 +12,60 @@ export interface AddressInfo {
 }
 
 // === PHASE 2: cashaddr charset helpers ===
-const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
-
-function isValidCashaddrPayload(payload: string): boolean {
-  return [...payload].every(c => CHARSET.includes(c))
-}
-
-function isTokenAwarePayload(payload: string): boolean {
-  // first char encodes version: bits [4:3] = type, 0=P2PKH,1=P2SH,2=P2PKH-token,3=P2SH-token
-  const v = CHARSET.indexOf(payload[0])
-  return v >= 0 && ((v >> 3) & 0x3) >= 2
-}
-
-function flipTokenBit(payload: string): string {
-  const v = CHARSET.indexOf(payload[0])
-  if (v < 0) return payload
-  const typeField = (v >> 3) & 0x3
-  const newType = typeField >= 2 ? typeField - 2 : typeField + 2
-  const newV = (newType << 3) | (v & 0x7)
-  return CHARSET[newV] + payload.slice(1)
-}
+const LEGACY_RE = /^[1-9A-HJ-NP-Za-km-z]{25,34}$/
 
 // === PHASE 3: legacy detection ===
 function isLegacy(addr: string): boolean {
-  return /^[1-9A-HJ-NP-Za-km-z]{25,34}$/.test(addr)
+  return LEGACY_RE.test(addr)
 }
 
 // === PHASE 4: main analyse function ===
 export function analyse(raw: string): AddressInfo | null {
   if (!raw) return null
-  const lower = raw.toLowerCase()
 
-  // legacy
   if (isLegacy(raw)) {
     return {
-      format: 'legacy',
-      network: (raw[0] === '1' || raw[0] === '3') ? 'mainnet' : 'testnet',
+      format: 'Legacy (Base58)',
+      network: 'legacy',
       tokenAware: false,
       cashaddr: raw,
       tokenAwareAddr: '—',
     }
   }
 
-  // cashaddr with prefix
-  let prefix: string | null = null
-  let payload: string | null = null
-  if (lower.startsWith('bitcoincash:')) { prefix = 'bitcoincash'; payload = lower.slice(12) }
-  else if (lower.startsWith('bchtest:')) { prefix = 'bchtest'; payload = lower.slice(8) }
-  else if (lower.startsWith('bchreg:')) { prefix = 'bchreg'; payload = lower.slice(7) }
+  // try with and without prefix
+  const candidates = raw.includes(':') ? [raw] : [`bitcoincash:${raw}`, `bchtest:${raw}`]
 
-  if (prefix && payload) {
-    if (!isValidCashaddrPayload(payload)) return null
-    const tokenAware = isTokenAwarePayload(payload)
-    const network: Network = prefix === 'bitcoincash' ? 'mainnet' : prefix === 'bchtest' ? 'testnet' : 'regtest'
-    const flipped = flipTokenBit(payload)
+  for (const candidate of candidates) {
+    const decoded = decodeCashAddress(candidate)
+    if (typeof decoded === 'string') continue // error string = invalid
+
+    const network: Network =
+      decoded.prefix === 'bitcoincash' ? 'mainnet' :
+      decoded.prefix === 'bchtest' ? 'testnet' : 'regtest'
+
+    const tokenAware = decoded.type === 'p2pkhWithTokens' || decoded.type === 'p2shWithTokens'
+    const baseType = tokenAware
+      ? (decoded.type === 'p2pkhWithTokens' ? 'p2pkh' : 'p2sh')
+      : decoded.type
+    const tokenType = tokenAware
+      ? decoded.type
+      : (decoded.type === 'p2pkh' ? 'p2pkhWithTokens' : 'p2shWithTokens')
+
+    const cashaddrResult = encodeCashAddress({ prefix: decoded.prefix, type: baseType as any, payload: decoded.payload })
+    const tokenResult = encodeCashAddress({ prefix: decoded.prefix, type: tokenType as any, payload: decoded.payload })
+
+    if (typeof cashaddrResult === 'string' || typeof tokenResult === 'string') continue
+
+    const noPrefix = !raw.includes(':')
+    const format = noPrefix ? 'CashAddr (no prefix)' : tokenAware ? 'CashAddr (token-aware)' : 'CashAddr'
+
     return {
-      format: tokenAware ? 'cashaddr-token' : 'cashaddr',
+      format,
       network,
       tokenAware,
-      cashaddr: tokenAware ? `${prefix}:${flipped}` : raw,
-      tokenAwareAddr: tokenAware ? raw : `${prefix}:${flipped}`,
-    }
-  }
-
-  // cashaddr without prefix — assume mainnet
-  if (isValidCashaddrPayload(lower)) {
-    const tokenAware = isTokenAwarePayload(lower)
-    const flipped = flipTokenBit(lower)
-    return {
-      format: 'cashaddr-no-prefix',
-      network: 'mainnet',
-      tokenAware,
-      cashaddr: tokenAware ? `bitcoincash:${flipped}` : `bitcoincash:${lower}`,
-      tokenAwareAddr: tokenAware ? `bitcoincash:${lower}` : `bitcoincash:${flipped}`,
+      cashaddr: cashaddrResult.address,
+      tokenAwareAddr: tokenResult.address,
     }
   }
 

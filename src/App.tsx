@@ -78,7 +78,7 @@ export default function App() {
             <Row label="Format">{formatLabel[result.format] ?? result.format}</Row>
 
             <Row label="Network">
-              <span className={`badge ${result.network === 'mainnet' ? 'badge-green' : 'badge-yellow'}`}>
+              <span className={`badge ${result.network === 'mainnet' ? 'badge-green' : result.network === 'legacy' ? 'badge-yellow' : 'badge-yellow'}`}>
                 {result.network}
               </span>
             </Row>
