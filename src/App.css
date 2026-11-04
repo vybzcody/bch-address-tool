@@ -1,0 +1,101 @@
+/* === PHASE 1: reset & base === */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, sans-serif;
+  background: #070b10;
+  color: #edf4f8;
+  min-height: 100vh;
+}
+
+/* === PHASE 2: layout === */
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56px 16px 80px;
+}
+
+.header { text-align: center; margin-bottom: 32px; }
+.header h1 { font-size: 32px; font-weight: 700; margin-bottom: 6px; }
+.header p { color: #8293a2; font-size: 15px; }
+
+.card {
+  background: #111820;
+  border: 1px solid #1e2d3a;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 580px;
+}
+
+/* === PHASE 3: input === */
+.input-row { display: flex; gap: 8px; }
+
+input[type="text"] {
+  flex: 1;
+  background: #0d1520;
+  border: 1px solid #1e2d3a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #edf4f8;
+  font-size: 14px;
+  font-family: monospace;
+}
+input[type="text"]:focus { outline: 2px solid #39e6a0; border-color: transparent; }
+
+button.primary {
+  background: #39e6a0;
+  color: #070b10;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+button.primary:hover { background: #2ecf8e; }
+
+.error { color: #f87171; font-size: 13px; margin-top: 10px; }
+
+/* === PHASE 4: results === */
+.results { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #1e2d3a;
+  gap: 12px;
+  font-size: 13px;
+}
+.row:last-child { border-bottom: none; }
+.row-label { color: #8293a2; flex-shrink: 0; }
+.row-value { font-family: monospace; word-break: break-all; text-align: right; }
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+.badge-green { background: rgba(57,230,160,0.15); color: #39e6a0; }
+.badge-yellow { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.badge-red { background: rgba(248,113,113,0.15); color: #f87171; }
+
+/* === PHASE 5: copy buttons === */
+.copy-row { display: flex; gap: 8px; margin-top: 14px; }
+
+button.copy {
+  background: #1e2d3a;
+  color: #edf4f8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: 1px solid #2a3a46;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button.copy:hover { border-color: #39e6a0; color: #39e6a0; }
